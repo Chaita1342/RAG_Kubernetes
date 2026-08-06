@@ -27,7 +27,7 @@ from app.ingestion.chunking.splitter import chunk_text
 from app.ingestion.loaders.html import parse_html
 from app.ingestion.loaders.pdf import parse_pdf
 from app.ingestion.loaders.text import parse_text
-from app.services.retrieval.embedding import embed_texts, get_embedding_dim
+from app.services.retrieval.embeddings import embed_texts, get_embedding_dim
 
 # Local folder where parsed + chunked JSON metadata is saved (replaces GCS processed bucket)
 PROCESSED_DATA_DIR = "processed_data"
@@ -110,16 +110,52 @@ def process_file(file_path: str, filename: str, source_type: str):
                 logfire.info(f"Indexed {len(points)} points to Qdrant from {filename}.")
 
         except Exception as e:
-            logfire.error(f"Failed to process {filename}: {e}")
+            # logfire.error(f"Failed to process {filename}: {e}")
+                print(f"\nERROR processing {filename}")
+                import traceback
+                traceback.print_exc()
+                raise
+
+
+# def process_directory(dir_path: str, source_type: str):
+#     """Process every file in a directory."""
+#     with logfire.span("Scanning Directory", path=dir_path, source=source_type):
+#         files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+#         logfire.info(f"Found {len(files)} files in {dir_path}.")
+#         for filename in files:
+#             process_file(os.path.join(dir_path, filename), filename, source_type)
+
+
+# def process_directory(dir_path: str, source_type: str):
+#     files = [
+#         f for f in os.listdir(dir_path)
+#         if os.path.isfile(os.path.join(dir_path, f))
+#     ]
+
+#     print(files)
+
+#     for filename in files:
+#         process_file(os.path.join(dir_path, filename), filename, source_type)
 
 
 def process_directory(dir_path: str, source_type: str):
-    """Process every file in a directory."""
-    with logfire.span("Scanning Directory", path=dir_path, source=source_type):
-        files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
-        logfire.info(f"Found {len(files)} files in {dir_path}.")
-        for filename in files:
-            process_file(os.path.join(dir_path, filename), filename, source_type)
+    files = [
+        f for f in os.listdir(dir_path)
+        if os.path.isfile(os.path.join(dir_path, f))
+    ]
+
+    print("FILES:", files)
+
+    for filename in files:
+        print("PROCESSING:", filename)
+        process_file(
+            os.path.join(dir_path, filename),
+            filename,
+            source_type,
+        )
+
+    print("FINISHED DIRECTORY")
+
 
 
 def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wipe: bool = False):
@@ -164,11 +200,29 @@ def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wip
                 process_directory(os.path.join(base_dir, subdir), source_type)
 
 
+# if __name__ == "__main__":
+#     # Usage:
+#     #   python -m app.ingestion.processor DATA --wipe
+#     #   python -m app.ingestion.processor DATA/true_data true
+#     wipe_requested = "--wipe" in sys.argv
+#     clean_args = [a for a in sys.argv if a != "--wipe"]
+
+#     target_dir = clean_args[1] if len(clean_args) > 1 else "DATA"
+#     explicit_type = clean_args[2] if len(clean_args) > 2 else None
+
+#     if not os.path.exists(target_dir):
+#         print(f"Error: path '{target_dir}' does not exist.")
+#         sys.exit(1)
+
+#     run_universal_ingestion(target_dir, explicit_source_type=explicit_type, wipe=wipe_requested)
+#     logfire.info("Ingestion job completed.")
+
+
+
+
 if __name__ == "__main__":
-    # Usage:
-    #   python -m app.ingestion.processor DATA --wipe
-    #   python -m app.ingestion.processor DATA/true_data true
     wipe_requested = "--wipe" in sys.argv
+
     clean_args = [a for a in sys.argv if a != "--wipe"]
 
     target_dir = clean_args[1] if len(clean_args) > 1 else "DATA"
@@ -178,5 +232,10 @@ if __name__ == "__main__":
         print(f"Error: path '{target_dir}' does not exist.")
         sys.exit(1)
 
-    run_universal_ingestion(target_dir, explicit_source_type=explicit_type, wipe=wipe_requested)
+    run_universal_ingestion(
+        target_dir,
+        explicit_source_type=explicit_type,
+        wipe=wipe_requested,
+    )
+
     logfire.info("Ingestion job completed.")

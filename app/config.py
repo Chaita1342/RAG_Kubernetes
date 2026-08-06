@@ -16,4 +16,12 @@ class Settings:
     GROQ_FALLBACK_API_KEY= str = os.getenv("GROQ_FALLBACK_API_KEY")
 
 
+    JINA_API_KEY = os.getenv("JINA_API_KEY")
+    JINA_EMBEDDING_MODEL = "jina-embeddings-v3"
+    JINA_RERANK_MODEL = "jina-reranker-v3"
+
+    LOGFIRE_TOKEN = os.getenv("LOGFIRE_TOKEN")
+    LOGFIRE_BASE_URL = os.getenv("LOGFIRE_BASE_URL")
+
+
 settings = Settings()
